@@ -3,6 +3,7 @@ package com.atraparalagato.impl.repository;
 import com.atraparalagato.base.repository.DataRepository;
 import com.atraparalagato.impl.model.HexGameState;
 
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -10,20 +11,21 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Implementaci\u00f3n simplificada de DataRepository que simula una base
- * de datos H2 usando almacenamiento en memoria. Esto permite que el resto
- * de la aplicaci\u00f3n funcione sin depender de una base de datos real.
+ * Repositorio en memoria para HexGameState.
+ * Se inspira en la implementaci\u00f3n de ejemplo pero adaptado para la versi\u00f3n
+ * de estudiantes. No usa una base de datos real pero cumple con la interfaz
+ * DataRepository.
  */
-public class H2GameRepository extends DataRepository<HexGameState, String> {
+public class InMemoryHexGameRepository extends DataRepository<HexGameState, String> {
 
     private final Map<String, HexGameState> storage = new ConcurrentHashMap<>();
 
-    public H2GameRepository() {
-        initialize();
-    }
-
     @Override
     public HexGameState save(HexGameState entity) {
+        if (entity == null) {
+            throw new IllegalArgumentException("Entity cannot be null");
+        }
+
         beforeSave(entity);
         storage.put(entity.getGameId(), entity);
         afterSave(entity);
@@ -32,6 +34,9 @@ public class H2GameRepository extends DataRepository<HexGameState, String> {
 
     @Override
     public Optional<HexGameState> findById(String id) {
+        if (id == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(storage.get(id));
     }
 
@@ -58,22 +63,28 @@ public class H2GameRepository extends DataRepository<HexGameState, String> {
 
     @Override
     public long countWhere(Predicate<HexGameState> condition) {
-        return storage.values().stream().filter(condition).count();
+        return storage.values().stream()
+                .filter(condition)
+                .count();
     }
 
     @Override
     public boolean deleteById(String id) {
+        if (id == null) {
+            return false;
+        }
         return storage.remove(id) != null;
     }
 
     @Override
     public long deleteWhere(Predicate<HexGameState> condition) {
-        List<String> ids = storage.values().stream()
+        List<String> toDelete = storage.values().stream()
                 .filter(condition)
                 .map(HexGameState::getGameId)
                 .collect(Collectors.toList());
+
         long deleted = 0;
-        for (String id : ids) {
+        for (String id : toDelete) {
             if (storage.remove(id) != null) {
                 deleted++;
             }
@@ -83,7 +94,7 @@ public class H2GameRepository extends DataRepository<HexGameState, String> {
 
     @Override
     public boolean existsById(String id) {
-        return storage.containsKey(id);
+        return id != null && storage.containsKey(id);
     }
 
     @Override
@@ -111,7 +122,7 @@ public class H2GameRepository extends DataRepository<HexGameState, String> {
 
     @Override
     public List<HexGameState> findAllSorted(Function<HexGameState, ? extends Comparable<?>> sortKeyExtractor,
-                                           boolean ascending) {
+                                            boolean ascending) {
         @SuppressWarnings("unchecked")
         Comparator<HexGameState> comparator = (Comparator<HexGameState>) Comparator.comparing(
                 (Function<HexGameState, Comparable<Object>>) sortKeyExtractor
@@ -126,6 +137,7 @@ public class H2GameRepository extends DataRepository<HexGameState, String> {
 
     @Override
     public <R> List<R> executeCustomQuery(String query, Function<Object, R> resultMapper) {
+        // Consultas personalizadas sencillas para pruebas
         if ("finished_games".equals(query)) {
             return storage.values().stream()
                     .filter(HexGameState::isGameFinished)
@@ -143,11 +155,53 @@ public class H2GameRepository extends DataRepository<HexGameState, String> {
 
     @Override
     protected void initialize() {
-        // Nada que inicializar en la versi\u00f3n en memoria
+        System.out.println("Inicializando repositorio Hex en memoria...");
     }
 
     @Override
     protected void cleanup() {
         storage.clear();
+    }
+
+    @Override
+    protected boolean validateEntity(HexGameState entity) {
+        return entity != null && entity.getGameId() != null && !entity.getGameId().isBlank();
+    }
+
+    @Override
+    protected void beforeSave(HexGameState entity) {
+        if (!validateEntity(entity)) {
+            throw new IllegalArgumentException("Invalid game state entity");
+        }
+    }
+
+    @Override
+    protected void afterSave(HexGameState entity) {
+        // no-op
+    }
+
+    /**
+     * Estad\u00edsticas b\u00e1sicas del repositorio.
+     */
+    public Map<String, Object> getRepositoryStatistics() {
+        long total = storage.size();
+        long finished = countWhere(HexGameState::isGameFinished);
+        long won = countWhere(HexGameState::hasPlayerWon);
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalGames", total);
+        stats.put("finishedGames", finished);
+        stats.put("wonGames", won);
+        stats.put("inProgressGames", total - finished);
+        stats.put("winRate", total > 0 ? (double) won / total * 100 : 0);
+        return stats;
+    }
+
+    /**
+     * Limpia juegos antiguos seg\u00fan antig\u00fcedad en horas.
+     */
+    public long cleanupOldGames(long maxAgeMillis) {
+        long now = System.currentTimeMillis();
+        return deleteWhere(game -> game.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() < now - maxAgeMillis);
     }
 }
