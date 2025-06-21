@@ -25,82 +25,94 @@ public class HexGameBoard extends GameBoard<HexPosition> {
     
     @Override
     protected Set<HexPosition> initializeBlockedPositions() {
-        // TODO: Los estudiantes deben decidir qué estructura de datos usar
-        // Opciones: HashSet, TreeSet, LinkedHashSet, etc.
-        // Considerar rendimiento vs orden vs duplicados
+        // Usar HashSet por su eficiencia O(1) en operaciones básicas y
+        // porque el orden de las celdas bloqueadas no afecta la lógica
+        // del juego. Esta estructura evita duplicados y ofrece buen
+        // rendimiento para búsquedas.
         return new HashSet<>();
     }
     
     @Override
     protected boolean isPositionInBounds(HexPosition position) {
-        // TODO: Implementar validación de límites para tablero hexagonal
-        // Pista: Usar coordenadas axiales q, r, s
-        // Condición: |q| <= size && |r| <= size && |s| <= size
-        throw new UnsupportedOperationException("Los estudiantes deben implementar este método");
+        // Una posición es válida si sus coordenadas axiales se encuentran
+        // dentro de los límites del tablero. La coordenada 's' se calcula
+        // como -q - r.
+        return Math.abs(position.getQ()) <= size
+                && Math.abs(position.getR()) <= size
+                && Math.abs(position.getS()) <= size;
     }
     
     @Override
     protected boolean isValidMove(HexPosition position) {
-        // TODO: Combinar validación de límites y estado actual
-        // Debe verificar:
-        // 1. Que la posición esté dentro de los límites
-        // 2. Que la posición no esté ya bloqueada
-        // 3. Cualquier regla adicional del juego
-        throw new UnsupportedOperationException("Los estudiantes deben implementar este método");
+        // Movimiento válido si la posición está dentro del tablero (sin contar
+        // celdas de borde) y no se encuentra bloqueada.
+        return isPositionInBounds(position)
+                && !isAtBorder(position)
+                && !isBlocked(position);
     }
     
     @Override
     protected void executeMove(HexPosition position) {
-        // TODO: Actualizar el estado interno del tablero
-        // Agregar la posición a las posiciones bloqueadas
-        // Considerar si necesita validación adicional
-        throw new UnsupportedOperationException("Los estudiantes deben implementar este método");
+        blockedPositions.add(position);
     }
     
     @Override
     public List<HexPosition> getPositionsWhere(Predicate<HexPosition> condition) {
-        // TODO: Implementar usando programación funcional
-        // Generar todas las posiciones posibles del tablero
-        // Filtrar usando el Predicate
-        // Retornar como List
-        // 
-        // Ejemplo de uso de streams:
-        // return getAllPossiblePositions().stream()
-        //     .filter(condition)
-        //     .collect(Collectors.toList());
-        throw new UnsupportedOperationException("Los estudiantes deben implementar este método");
+        return getAllPossiblePositions().stream()
+                .filter(condition)
+                .collect(java.util.stream.Collectors.toList());
     }
     
     @Override
     public List<HexPosition> getAdjacentPositions(HexPosition position) {
-        // TODO: Obtener las 6 posiciones adyacentes en un tablero hexagonal
-        // Direcciones hexagonales: (+1,0), (+1,-1), (0,-1), (-1,0), (-1,+1), (0,+1)
-        // Filtrar las que estén dentro de los límites del tablero
-        // 
-        // Pista: Crear array de direcciones y usar streams para mapear
-        throw new UnsupportedOperationException("Los estudiantes deben implementar este método");
+        HexPosition[] directions = {
+            new HexPosition(1, 0),
+            new HexPosition(1, -1),
+            new HexPosition(0, -1),
+            new HexPosition(-1, 0),
+            new HexPosition(-1, 1),
+            new HexPosition(0, 1)
+        };
+
+        return java.util.Arrays.stream(directions)
+                .map(dir -> (HexPosition) position.add(dir))
+                .filter(this::isPositionInBounds)
+                .filter(pos -> !isBlocked(pos))
+                .collect(java.util.stream.Collectors.toList());
     }
     
     @Override
     public boolean isBlocked(HexPosition position) {
-        // TODO: Verificar si una posición está en el conjunto de bloqueadas
-        // Método simple de consulta
-        throw new UnsupportedOperationException("Los estudiantes deben implementar este método");
+        return blockedPositions.contains(position);
     }
     
     // Método auxiliar que los estudiantes pueden implementar
     private List<HexPosition> getAllPossiblePositions() {
-        // TODO: Generar todas las posiciones válidas del tablero
-        // Usar doble loop para q y r, calcular s = -q - r
-        // Filtrar posiciones que estén dentro de los límites
-        throw new UnsupportedOperationException("Método auxiliar para implementar");
+        List<HexPosition> positions = new java.util.ArrayList<>();
+        for (int q = -size + 1; q < size; q++) {
+            for (int r = -size + 1; r < size; r++) {
+                HexPosition pos = new HexPosition(q, r);
+                if (isPositionInBounds(pos) && !isAtBorder(pos)) {
+                    positions.add(pos);
+                }
+            }
+        }
+        return positions;
     }
     
     // Hook method override - ejemplo de extensibilidad
     @Override
     protected void onMoveExecuted(HexPosition position) {
-        // TODO: Los estudiantes pueden agregar lógica adicional aquí
-        // Ejemplos: logging, notificaciones, validaciones post-movimiento
         super.onMoveExecuted(position);
+    }
+
+    /**
+     * Verifica si la posición se encuentra en el borde del tablero
+     * (donde el gato podría escapar).
+     */
+    public boolean isAtBorder(HexPosition position) {
+        return Math.abs(position.getQ()) == size
+                || Math.abs(position.getR()) == size
+                || Math.abs(position.getS()) == size;
     }
 } 
