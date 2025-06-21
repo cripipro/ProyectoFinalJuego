@@ -1,9 +1,7 @@
 package com.atraparalagato.impl.repository;
 
-import com.atraparalagato.base.model.GameState;
 import com.atraparalagato.base.repository.DataRepository;
 import com.atraparalagato.impl.model.HexGameState;
-import com.atraparalagato.impl.model.HexPosition;
 
 import java.time.ZoneId;
 import java.util.*;
@@ -14,29 +12,27 @@ import java.util.stream.Collectors;
 
 /**
  * Repositorio en memoria para HexGameState.
- * Se inspira en la implementaci\u00f3n de ejemplo pero adaptado para la versi\u00f3n
+ * Se inspira en la implementación de ejemplo pero adaptado para la versión
  * de estudiantes. No usa una base de datos real pero cumple con la interfaz
  * DataRepository.
  */
-public class InMemoryHexGameRepository extends DataRepository<GameState<HexPosition>, String> {
+public class InMemoryHexGameRepository extends DataRepository<HexGameState, String> {
 
     private final Map<String, HexGameState> storage = new ConcurrentHashMap<>();
 
     @Override
-    public GameState<HexPosition> save(GameState<HexPosition> entity) {
-        HexGameState hexState = (HexGameState) entity;
+    public HexGameState save(HexGameState entity) {
         if (entity == null) {
             throw new IllegalArgumentException("Entity cannot be null");
         }
-
         beforeSave(entity);
-        storage.put(hexState.getGameId(), hexState);
+        storage.put(entity.getGameId(), entity);
         afterSave(entity);
-        return hexState;
+        return entity;
     }
 
     @Override
-    public Optional<GameState<HexPosition>> findById(String id) {
+    public Optional<HexGameState> findById(String id) {
         if (id == null) {
             return Optional.empty();
         }
@@ -44,32 +40,29 @@ public class InMemoryHexGameRepository extends DataRepository<GameState<HexPosit
     }
 
     @Override
-    public List<GameState<HexPosition>> findAll() {
+    public List<HexGameState> findAll() {
         return new ArrayList<>(storage.values());
     }
 
     @Override
-    public List<GameState<HexPosition>> findWhere(Predicate<GameState<HexPosition>> condition) {
+    public List<HexGameState> findWhere(Predicate<HexGameState> condition) {
         return storage.values().stream()
-                .map(gs -> (GameState<HexPosition>) gs)
                 .filter(condition)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public <R> List<R> findAndTransform(Predicate<GameState<HexPosition>> condition,
-                                        Function<GameState<HexPosition>, R> transformer) {
+    public <R> List<R> findAndTransform(Predicate<HexGameState> condition,
+                                        Function<HexGameState, R> transformer) {
         return storage.values().stream()
-                .map(gs -> (GameState<HexPosition>) gs)
                 .filter(condition)
                 .map(transformer)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public long countWhere(Predicate<GameState<HexPosition>> condition) {
+    public long countWhere(Predicate<HexGameState> condition) {
         return storage.values().stream()
-                .map(gs -> (GameState<HexPosition>) gs)
                 .filter(condition)
                 .count();
     }
@@ -83,16 +76,15 @@ public class InMemoryHexGameRepository extends DataRepository<GameState<HexPosit
     }
 
     @Override
-    public long deleteWhere(Predicate<GameState<HexPosition>> condition) {
+    public long deleteWhere(Predicate<HexGameState> condition) {
         List<String> toDelete = storage.values().stream()
-                .map(gs -> (GameState<HexPosition>) gs)
                 .filter(condition)
-                .map(gs -> ((HexGameState) gs).getGameId())
+                .map(HexGameState::getGameId)
                 .collect(Collectors.toList());
 
         long deleted = 0;
-        for (String id : toDelete) {
-            if (storage.remove(id) != null) {
+        for (String gameId : toDelete) {
+            if (storage.remove(gameId) != null) {
                 deleted++;
             }
         }
@@ -105,7 +97,7 @@ public class InMemoryHexGameRepository extends DataRepository<GameState<HexPosit
     }
 
     @Override
-    public <R> R executeInTransaction(Function<DataRepository<GameState<HexPosition>, String>, R> operation) {
+    public <R> R executeInTransaction(Function<DataRepository<HexGameState, String>, R> operation) {
         try {
             return operation.apply(this);
         } catch (Exception e) {
@@ -114,31 +106,29 @@ public class InMemoryHexGameRepository extends DataRepository<GameState<HexPosit
     }
 
     @Override
-    public List<GameState<HexPosition>> findWithPagination(int page, int size) {
+    public List<HexGameState> findWithPagination(int page, int size) {
         if (page < 0 || size <= 0) {
             return Collections.emptyList();
         }
-        List<GameState<HexPosition>> all = findAll();
+        List<HexGameState> all = findAll();
         int start = page * size;
-        int end = Math.min(start + size, all.size());
         if (start >= all.size()) {
             return Collections.emptyList();
         }
+        int end = Math.min(start + size, all.size());
         return all.subList(start, end);
     }
 
     @Override
-    public List<GameState<HexPosition>> findAllSorted(Function<GameState<HexPosition>, ? extends Comparable<?>> sortKeyExtractor,
+    public List<HexGameState> findAllSorted(Function<HexGameState, ? extends Comparable<?>> sortKeyExtractor,
                                             boolean ascending) {
         @SuppressWarnings("unchecked")
-        Comparator<GameState<HexPosition>> comparator = (Comparator<GameState<HexPosition>>) Comparator.comparing(
-                (Function<GameState<HexPosition>, Comparable<Object>>) sortKeyExtractor
-        );
+        Comparator<HexGameState> comparator = (Comparator<HexGameState>)
+                Comparator.comparing((Function<HexGameState, Comparable<Object>>) sortKeyExtractor);
         if (!ascending) {
             comparator = comparator.reversed();
         }
         return storage.values().stream()
-                .map(gs -> (GameState<HexPosition>) gs)
                 .sorted(comparator)
                 .collect(Collectors.toList());
     }
@@ -148,15 +138,13 @@ public class InMemoryHexGameRepository extends DataRepository<GameState<HexPosit
         // Consultas personalizadas sencillas para pruebas
         if ("finished_games".equals(query)) {
             return storage.values().stream()
-                    .map(gs -> (GameState<HexPosition>) gs)
-                    .filter(g -> ((HexGameState) g).isGameFinished())
+                    .filter(HexGameState::isGameFinished)
                     .map(resultMapper)
                     .collect(Collectors.toList());
         }
         if ("won_games".equals(query)) {
             return storage.values().stream()
-                    .map(gs -> (GameState<HexPosition>) gs)
-                    .filter(g -> ((HexGameState) g).hasPlayerWon())
+                    .filter(HexGameState::hasPlayerWon)
                     .map(resultMapper)
                     .collect(Collectors.toList());
         }
@@ -174,32 +162,29 @@ public class InMemoryHexGameRepository extends DataRepository<GameState<HexPosit
     }
 
     @Override
-    protected boolean validateEntity(GameState<HexPosition> entity) {
-        if (!(entity instanceof HexGameState hex)) {
-            return false;
-        }
-        return hex.getGameId() != null && !hex.getGameId().isBlank();
+    protected boolean validateEntity(HexGameState entity) {
+        return entity != null && entity.getGameId() != null && !entity.getGameId().isBlank();
     }
 
     @Override
-    protected void beforeSave(GameState<HexPosition> entity) {
+    protected void beforeSave(HexGameState entity) {
         if (!validateEntity(entity)) {
             throw new IllegalArgumentException("Invalid game state entity");
         }
     }
 
     @Override
-    protected void afterSave(GameState<HexPosition> entity) {
+    protected void afterSave(HexGameState entity) {
         // no-op
     }
 
     /**
-     * Estad\u00edsticas b\u00e1sicas del repositorio.
+     * Estadísticas básicas del repositorio.
      */
     public Map<String, Object> getRepositoryStatistics() {
         long total = storage.size();
-        long finished = countWhere(gs -> ((HexGameState) gs).isGameFinished());
-        long won = countWhere(gs -> ((HexGameState) gs).hasPlayerWon());
+        long finished = countWhere(HexGameState::isGameFinished);
+        long won = countWhere(HexGameState::hasPlayerWon);
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalGames", total);
@@ -211,10 +196,15 @@ public class InMemoryHexGameRepository extends DataRepository<GameState<HexPosit
     }
 
     /**
-     * Limpia juegos antiguos seg\u00fan antig\u00fcedad en horas.
+     * Limpia juegos antiguos según antigüedad en milisegundos.
      */
     public long cleanupOldGames(long maxAgeMillis) {
         long now = System.currentTimeMillis();
-        return deleteWhere(game -> game.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() < now - maxAgeMillis);
+        return deleteWhere(game ->
+            game.getCreatedAt()
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli() < now - maxAgeMillis
+        );
     }
 }
