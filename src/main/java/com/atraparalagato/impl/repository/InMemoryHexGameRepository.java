@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 /**
  * Repositorio en memoria para HexGameState.
- * Se inspira en la implementaci\u00f3n de ejemplo pero adaptado para la versi\u00f3n
+ * Se inspira en la implementación de ejemplo pero adaptado para la versión
  * de estudiantes. No usa una base de datos real pero cumple con la interfaz
  * DataRepository.
  */
@@ -25,7 +25,6 @@ public class InMemoryHexGameRepository extends DataRepository<HexGameState, Stri
         if (entity == null) {
             throw new IllegalArgumentException("Entity cannot be null");
         }
-
         beforeSave(entity);
         storage.put(entity.getGameId(), entity);
         afterSave(entity);
@@ -84,8 +83,8 @@ public class InMemoryHexGameRepository extends DataRepository<HexGameState, Stri
                 .collect(Collectors.toList());
 
         long deleted = 0;
-        for (String id : toDelete) {
-            if (storage.remove(id) != null) {
+        for (String gameId : toDelete) {
+            if (storage.remove(gameId) != null) {
                 deleted++;
             }
         }
@@ -113,10 +112,10 @@ public class InMemoryHexGameRepository extends DataRepository<HexGameState, Stri
         }
         List<HexGameState> all = findAll();
         int start = page * size;
-        int end = Math.min(start + size, all.size());
         if (start >= all.size()) {
             return Collections.emptyList();
         }
+        int end = Math.min(start + size, all.size());
         return all.subList(start, end);
     }
 
@@ -124,9 +123,8 @@ public class InMemoryHexGameRepository extends DataRepository<HexGameState, Stri
     public List<HexGameState> findAllSorted(Function<HexGameState, ? extends Comparable<?>> sortKeyExtractor,
                                             boolean ascending) {
         @SuppressWarnings("unchecked")
-        Comparator<HexGameState> comparator = (Comparator<HexGameState>) Comparator.comparing(
-                (Function<HexGameState, Comparable<Object>>) sortKeyExtractor
-        );
+        Comparator<HexGameState> comparator = (Comparator<HexGameState>)
+                Comparator.comparing((Function<HexGameState, Comparable<Object>>) sortKeyExtractor);
         if (!ascending) {
             comparator = comparator.reversed();
         }
@@ -181,7 +179,7 @@ public class InMemoryHexGameRepository extends DataRepository<HexGameState, Stri
     }
 
     /**
-     * Estad\u00edsticas b\u00e1sicas del repositorio.
+     * Estadísticas básicas del repositorio.
      */
     public Map<String, Object> getRepositoryStatistics() {
         long total = storage.size();
@@ -198,10 +196,15 @@ public class InMemoryHexGameRepository extends DataRepository<HexGameState, Stri
     }
 
     /**
-     * Limpia juegos antiguos seg\u00fan antig\u00fcedad en horas.
+     * Limpia juegos antiguos según antigüedad en milisegundos.
      */
     public long cleanupOldGames(long maxAgeMillis) {
         long now = System.currentTimeMillis();
-        return deleteWhere(game -> game.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() < now - maxAgeMillis);
+        return deleteWhere(game ->
+            game.getCreatedAt()
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli() < now - maxAgeMillis
+        );
     }
 }
