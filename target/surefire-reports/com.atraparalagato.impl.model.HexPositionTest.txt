@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.atraparalagato.impl.model.HexPositionTest
+-------------------------------------------------------------------------------
+Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.038 s -- in com.atraparalagato.impl.model.HexPositionTest

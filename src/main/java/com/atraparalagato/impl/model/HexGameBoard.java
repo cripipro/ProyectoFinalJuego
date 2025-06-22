@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 /**
  * Implementación esqueleto de GameBoard para tableros hexagonales.
  * 
- * Los estudiantes deben completar los métodos marcados con TODO.
+ * Los estudiantes deben completar los métodos marcados con TO DO.
  * 
  * Conceptos a implementar:
  * - Modularización: Separación de lógica de tablero hexagonal

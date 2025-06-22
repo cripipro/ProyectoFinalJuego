@@ -14,7 +14,17 @@ import java.util.Map;
  * - Serialización eficiente
  * - Manejo de eventos y callbacks
  */
+
 public class HexGameState extends GameState<HexPosition> {
+
+    private int difficulty = 5;
+
+    public int getDifficulty() {
+        return difficulty;
+    }
+    public void setDifficulty(int difficulty) {
+        this.difficulty = difficulty;
+    }
 
     private HexPosition catPosition;
     private HexGameBoard gameBoard;

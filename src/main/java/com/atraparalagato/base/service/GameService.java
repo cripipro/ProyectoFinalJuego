@@ -160,7 +160,7 @@ public abstract class GameService<T extends Position> {
     /**
      * Carga el estado del juego desde el repositorio.
      */
-    protected Optional<GameState<T>> loadGameState(String gameId) {
+    public Optional<GameState<T>> loadGameState(String gameId) {
         return gameRepository.findById(gameId);
     }
     
