@@ -8,6 +8,7 @@ import com.atraparalagato.impl.model.HexPosition;
 import com.atraparalagato.impl.model.HexGameState;
 import com.atraparalagato.impl.model.HexGameBoard;
 import com.atraparalagato.impl.repository.InMemoryHexGameRepository;
+import com.atraparalagato.base.repository.DataRepository;
 import com.atraparalagato.impl.strategy.AStarCatMovement;
 import com.atraparalagato.impl.strategy.BFSCatMovement;
 
@@ -29,11 +30,13 @@ import java.util.UUID;
  */
 public class HexGameService extends GameService<HexPosition> {
 
+    @SuppressWarnings("unchecked")
     public HexGameService() {
         super(
             new HexGameBoard(9),
             new AStarCatMovement(new HexGameBoard(9)),
-            new InMemoryHexGameRepository(),
+            (DataRepository<GameState<HexPosition>, String>)
+                (DataRepository<?, ?>) new InMemoryHexGameRepository(),
             () -> UUID.randomUUID().toString(),
             HexGameBoard::new,
             HexGameState::new
@@ -109,7 +112,7 @@ public class HexGameService extends GameService<HexPosition> {
      */
     public Map<String, Object> getPlayerStatistics(String playerId) {
         long total = gameRepository.findAll().size();
-        long won = gameRepository.findWhere(HexGameState::hasPlayerWon).size();
+        long won = gameRepository.findWhere(gs -> ((HexGameState) gs).hasPlayerWon()).size();
         double winRate = total > 0 ? (double) won / total * 100 : 0;
         return Map.of(
             "totalGames", total,
@@ -161,8 +164,16 @@ public class HexGameService extends GameService<HexPosition> {
      * Validar movimiento según reglas avanzadas.
      */
     private boolean isValidAdvancedMove(HexGameState gameState, HexPosition position, String playerId) {
-        return !position.equals(gameState.getCatPosition()) &&
-               gameState.getGameBoard().isValidMove(position);
+        HexGameBoard board = gameState.getGameBoard();
+        int size = board.getSize();
+        boolean inBounds = Math.abs(position.getQ()) <= size
+                && Math.abs(position.getR()) <= size
+                && Math.abs(position.getS()) <= size;
+
+        return !position.equals(gameState.getCatPosition())
+                && inBounds
+                && !board.isAtBorder(position)
+                && !board.isBlocked(position);
     }
 
     /**
